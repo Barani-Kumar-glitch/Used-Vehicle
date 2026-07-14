@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "Barani-2005A",
+    "database": "UsedVehicle",
+    "host": "localhost",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "postgres",
+    "password": "Barani-2005A",
+    "database": "UsedVehicle",
+    "host": "localhost",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "postgres",
+    "password": "Barani-2005A",
+    "database": "UsedVehicle",
+    "host": "localhost",
+    "dialect": "postgres"
+  }
+}

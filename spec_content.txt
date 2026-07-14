@@ -1,0 +1,906 @@
+
+SECONDHAND VEHICLE
+WEB SERVICE
+Full-Stack Development Specification & Stage Plan
+REVISION NOTICE — Tech Stack Update & Referral Commission System
+This revision replaces Django (Python) with Node.js + Express, standardizes the database on PostgreSQL only, and introduces a full referral & commission tracking system.
+Tech Stack
+Node.js (Express)   •   React JS   •   Tailwind CSS   •   PostgreSQL   •   Twilio SDK (OTP)
+Four-Panel Architecture
+Admin Panel   •   Vehicle Buyer Panel (with Referral Sharing)   •   Vehicle & Driver Lending Panel   •   Referral & Commission Tracking
+Version 2.0   •   Tech Stack & Referral Revision   •   June 2026
+
+Table of Contents
+Table of Contents1
+1. Project Overview1
+1.1 System Summary1
+1.2 Key Features1
+2. Technology Stack1
+2.1 Backend — Node.js + Express1
+2.2 Frontend — React JS + Tailwind CSS1
+2.3 Database Schema (Updated ERD)1
+2.3.1 REFERRAL Table — Detailed Schema1
+2.3.2 Referral Relationship Rules1
+3. Project Directory Structure1
+3.1 Node.js / Express Backend1
+3.2 React Frontend1
+4. Development Stages1
+4.1.1 Environment Setup1
+4.1.2 Database Configuration (PostgreSQL only)1
+4.1.3 ERD Relationship Rules (from Schema)1
+4.2.1 Authentication & OTP API1
+Twilio Integration in src/services/twilioService.js1
+4.2.2 Vehicle APIs1
+4.2.3 Driver APIs1
+4.2.4 Orders & Bookings APIs1
+4.2.5 Request & Status APIs1
+4.2.6 Referral & Commission APIs — NEW1
+4.2.7 Referral Conversion Logic (Backend Workflow)1
+4.3.1 Admin Panel Design Principles1
+4.3.2 Admin Panel Pages1
+4.4.1 Buyer Panel Design Principles1
+4.4.2 Buyer Panel Pages1
+4.6.1 Auth Flow1
+4.6.2 Auth Pages1
+4.6.3 OTP Backend Logic (Node/Express)1
+4.7.1 SEO Tags Per Page1
+4.7.2 Structured Data (JSON-LD)1
+4.7.3 Additional SEO Elements1
+4.8.1 Backend Testing1
+4.8.2 Frontend Testing1
+4.8.3 Cross-browser & Responsive Testing1
+4.9.1 Server Configuration1
+4.9.2 Security Checklist1
+5. Complete User Flow Diagrams1
+5.1 Customer Buy Flow1
+5.2 Customer Rental Flow1
+5.3 Admin Accept & Close Flow1
+5.4 Referral & Commission Flow — NEW1
+6. Sprint & Timeline Summary1
+7. Key Notes & Conventions1
+
+
+1. Project Overview
+The Secondhand Vehicle Web Service is a full-stack, multi-panel web application designed to digitize and streamline the buying, selling, and renting of used vehicles and drivers. The platform serves three user groups — administrators who manage all operations, buyers who browse and purchase vehicles, and customers who rent vehicles or hire drivers — and now adds a built-in referral program that rewards customers for bringing in new buyers.
+This revision updates the original specification in two ways: (1) the backend has moved from Django (Python) to Node.js with Express, and the database is standardized on PostgreSQL only (MySQL is no longer supported); (2) a new Referral & Commission system has been added so that buyers can generate a unique, shareable referral link for any vehicle, and if the referred person purchases that vehicle, the system automatically tracks the conversion, notifies the admin via the Status Event Log, and surfaces the referrer's contact details for commission payout.
+1.1 System Summary
+Field
+Detail
+Project Name
+Secondhand Vehicle Web Service
+Purpose
+Unified platform for vehicle sales, rentals, driver hiring, and customer referral commissions with full admin oversight
+Panels
+Admin Panel • Buyer Panel (with Referral Sharing) • Lending (Rental) Panel
+Backend
+Node.js with Express.js
+Frontend
+React JS with Tailwind CSS
+Database
+PostgreSQL (sole database — MySQL removed)
+OTP / SMS
+Twilio SDK — Mobile Number Verification per login
+Auth
+JWT Token-based + OTP per session login
+New in v2.0
+Referral link generation, click/visit tracking, conversion-to-sale detection, and admin commission workflow
+
+1.2 Key Features
+Node.js + Express backend serving a single REST API consumed by all panels
+PostgreSQL as the sole relational database (MySQL support fully removed)
+OTP-based authentication via Twilio on every login session
+Real-time status event log for all admin operations, including referral conversions
+Vehicle sales, rentals (hourly/daily), and driver hiring workflows
+Exchange transactions: vehicle-for-vehicle with customer tracking
+Partial and full payment tracking per order/booking
+Unique per-user, per-vehicle referral links with automatic conversion tracking
+Admin Referral & Commission dashboard showing referrer contact details for payout
+SEO-optimized buyer and lending panels for marketing
+Audit trail via Activity Log and Product/Price Change Logs
+Daily admin summary dashboard with revenue and KPI metrics
+2. Technology Stack
+2.1 Backend — Node.js + Express
+Package / Tool
+Version (Recommended)
+Purpose
+Node.js
+v24.15.0
+JavaScript runtime for the backend server
+Express.js
+4.x
+Core web framework, routing, middleware pipeline
+pg / Sequelize (or Prisma)
+8.x / 6.x
+PostgreSQL driver and ORM / query builder
+jsonwebtoken
+9.x
+JWT authentication (access + refresh tokens)
+cors
+2.x
+CORS for the React frontend
+twilio
+5.x
+OTP SMS via Twilio SDK
+bcrypt
+5.x
+Password / OTP hashing
+multer
+1.x
+Multipart form handling for vehicle photo uploads
+express-validator
+7.x
+Request payload validation
+nanoid
+5.x
+Short, unique, URL-safe referral code generation
+node-cron
+3.x
+Scheduled jobs (OTP expiry sweep, overdue rental alerts, daily summary, referral expiry)
+dotenv
+16.x
+Environment variable management
+helmet
+7.x
+HTTP security headers
+winston / morgan
+Latest
+Structured logging and request logging
+
+2.2 Frontend — React JS + Tailwind CSS
+Package / Tool
+Version
+Purpose
+React
+18.x
+UI component framework
+React Router DOM
+6.x
+Client-side routing
+Tailwind CSS
+3.x
+Utility-first styling
+Axios
+1.x
+API HTTP client
+React Query / TanStack
+5.x
+Server state management & caching
+Zustand
+4.x
+Lightweight global state (auth, referral code capture)
+React Hook Form
+7.x
+Form state management
+Zod
+3.x
+Schema validation
+Lucide React
+Latest
+Icon library
+Recharts
+2.x
+Admin dashboard charts, including referral conversion charts
+react-helmet-async
+2.x
+SEO meta tags management
+react-share / native Web Share API
+Latest
+One-tap referral link sharing (WhatsApp, copy link)
+
+2.3 Database Schema (Updated ERD)
+The database is fully migrated to PostgreSQL. The schema below extends the original ERD with a new REFERRAL entity that links a referring CUSTOMER, the VEHICLE they referred, the resulting REFERRAL_CUSTOMER (if conversion occurs), the resulting SALE_ORDER, and the ADMIN_USER who processes the commission.
+Entity / Table
+Description
+VEHICLE
+Core vehicle records: make, model, year, fuel, transmission, status, location
+VEHICLE_PRICE
+Sale price, rental rate per hour/day, driver rate per hour/day
+VEHICLE_AVAILABILITY
+Blocked dates/times for each vehicle with reason
+VEHICLE_REMOVAL_LOG
+Records when and why a vehicle was delisted
+PRODUCT_CHANGE_LOG
+Field-level change history for vehicle details
+PRICE_CHANGE_LOG
+Decimal-level change history for pricing
+CUSTOMER
+Buyer/renter accounts: name, email, phone, type, verified status
+CUSTOMER_OTP_VERIFICATION
+OTP code, purpose, attempt count, expiry, verified_at
+CUSTOMER_DOCUMENT
+KYC document uploads with admin verification
+DRIVER
+Driver profiles: licence, class, expiry, home city
+DRIVER_LOCATION
+City/zone assignment per driver with admin tracking
+DRIVER_AVAILABILITY
+Blocked schedule for each driver
+SALE_ORDER
+Purchase orders linking vehicle, customer, price, payment status
+RENTAL_BOOKING
+Rental records: pickup, return, hours/days, driver assignment
+PAYMENT
+Payment records for both sales and rentals with partial/full tracking
+REFERRAL — NEW
+Unique referral link per (referrer customer, vehicle) pair; tracks referred customer, visit/conversion status, linked sale, and commission payout state
+REQUEST_LOG
+Customer requests from all panels (buy, rent, driver hire); now carries an optional referral_code column
+STATUS_EVENT_LOG
+Polymorphic log for all status changes across all entities, including referral conversions
+ADMIN_USER
+Admin accounts with role and password hash; FK target for referral commission approval
+ACTIVITY_LOG
+Full JSON old/new data audit trail per admin action
+DAILY_ADMIN_SUMMARY
+Aggregated daily KPIs and revenue snapshot, including referral conversions and commission payouts
+
+2.3.1 REFERRAL Table — Detailed Schema
+This is the new table introduced for the referral and commission feature. One row is created the first time a logged-in customer generates a referral link for a specific vehicle.
+Column
+Type
+Description
+referral_id
+BIGSERIAL (PK)
+Primary key
+referral_code
+VARCHAR(12) UNIQUE
+URL-safe unique code (nanoid) embedded in the shareable link
+referrer_customer_id
+BIGINT (FK → CUSTOMER)
+The customer who generated and shared the link
+vehicle_id
+BIGINT (FK → VEHICLE)
+The specific vehicle the link points to
+referred_customer_id
+BIGINT (FK → CUSTOMER, nullable)
+Set once the referred visitor signs up or logs in via the link
+status
+ENUM
+generated → visited → converted → commission_paid (or expired)
+visited_at
+TIMESTAMP (nullable)
+First time the link was opened
+converted_at
+TIMESTAMP (nullable)
+Timestamp the linked SALE_ORDER was created
+sale_order_id
+BIGINT (FK → SALE_ORDER, nullable)
+The completed sale that fulfilled this referral
+commission_amount
+DECIMAL(10,2) (nullable)
+Calculated commission owed to the referrer
+commission_status
+ENUM
+not_applicable → pending → approved → paid
+admin_notified_at
+TIMESTAMP (nullable)
+When the STATUS_EVENT_LOG entry was written for admin visibility
+processed_by_admin_id
+BIGINT (FK → ADMIN_USER, nullable)
+Admin who approved/paid the commission
+expires_at
+TIMESTAMP
+Link validity window (default 90 days from creation)
+created_at / updated_at
+TIMESTAMP
+Standard audit timestamps
+
+2.3.2 Referral Relationship Rules
+CUSTOMER → REFERRAL (referrer_customer_id): one customer can generate many referral links, one per vehicle they choose to share
+VEHICLE → REFERRAL (vehicle_id): a referral link always targets exactly one vehicle, so a customer generates a distinct link per vehicle they want to refer
+REFERRAL.referrer_customer_id and REFERRAL.referred_customer_id both reference CUSTOMER — a self-referential pair on the same table, enforced so referrer_customer_id ≠ referred_customer_id
+REFERRAL → SALE_ORDER (sale_order_id): set only when the referred customer's purchase of the exact referred vehicle is confirmed by the admin
+REFERRAL → ADMIN_USER (processed_by_admin_id): set when an admin approves or marks the commission as paid
+REQUEST_LOG.referral_code (nullable FK to REFERRAL.referral_code): carries the referral attribution from the buy request through to the Admin Accept action
+STATUS_EVENT_LOG entries of type referral_converted reference entity_type = 'REFERRAL' and entity_id = referral_id, surfaced on the Admin Status Log alongside referrer name, phone, and commission amount
+
+3. Project Directory Structure
+3.1 Node.js / Express Backend
+Path
+Contents
+secondhand-vehicle-api/
+Root Node.js project folder
+├─ src/config/
+db.js (PostgreSQL pool/Sequelize instance), env.js, twilio.js
+├─ src/app.js
+Express app instance: middleware, route mounting
+├─ src/server.js
+HTTP server bootstrap, listens on PORT
+├─ src/routes/
+vehicles.routes.js, customers.routes.js, drivers.routes.js, orders.routes.js, requests.routes.js, auth.routes.js, referrals.routes.js, admin.routes.js
+├─ src/controllers/
+Route handler logic per domain, including referrals.controller.js
+├─ src/services/
+Business logic: referralService.js (code generation, conversion matching), twilioService.js, paymentService.js
+├─ src/models/
+Sequelize/Prisma models mapped 1:1 to PostgreSQL tables, including Referral.js
+├─ src/middleware/
+authJwt.js, errorHandler.js, validateRequest.js, rateLimiter.js
+├─ src/jobs/
+node-cron tasks: otpExpirySweep.js, overdueRentalCheck.js, dailySummary.js, referralLinkExpiry.js
+├─ src/utils/
+Twilio helper, pagination, nanoid referral code generator, response formatter
+├─ migrations/
+PostgreSQL schema migrations (node-pg-migrate or Sequelize CLI), including create-referral-table
+├─ media/ or /uploads
+Uploaded vehicle images, customer documents (or S3-backed in production)
+├─ .env
+DATABASE_URL, TWILIO credentials, JWT secrets, PORT
+└─ package.json
+Node dependencies and npm scripts (start, dev, migrate, test)
+
+3.2 React Frontend
+Path
+Contents
+frontend/src/
+Root React source
+├─ apps/admin/
+Admin panel pages and components, including ReferralCommission page
+├─ apps/buyer/
+Vehicle buyer panel pages, including referral link generation & share UI
+├─ apps/lending/
+Rental + driver lending panel pages
+├─ apps/auth/
+Login, OTP verify, Signup pages (captures referral_code from URL)
+├─ components/common/
+Shared: Button, Modal, Badge, Table, Spinner
+├─ components/vehicle/
+VehicleCard, VehicleDetail, VehicleGallery, ReferralShareButton
+├─ components/driver/
+DriverCard, DriverDetail
+├─ hooks/
+useAuth, useVehicles, useDrivers, useOTP, useRequests, useReferral
+├─ stores/
+Zustand: authStore, cartStore, filterStore, referralStore (holds captured ?ref= code)
+├─ api/
+Axios instances, API call functions per domain, including referrals.api.js
+├─ utils/
+formatCurrency, formatDate, seoHelpers, referralLinkBuilder
+└─ index.html
+Global SEO meta, OG tags, structured data
+
+4. Development Stages
+STAGE 1 — Project Setup & Database Foundation
+Estimated Duration: 1 Week
+4.1.1 Environment Setup
+Initialize Node project: npm init -y, install Express: npm install express
+Install core dependencies: npm install pg sequelize jsonwebtoken cors twilio bcrypt multer express-validator nanoid dotenv helmet morgan
+Install dev dependencies: npm install -D nodemon jest supertest
+Project structure: src/config, src/routes, src/controllers, src/services, src/models, src/middleware, src/jobs, src/utils
+Configure config/db.js for a single PostgreSQL connection pool (no MySQL fallback)
+Create React frontend: npm create vite@latest frontend -- --template react
+Install React dependencies: npm install tailwindcss axios @tanstack/react-query zustand react-router-dom react-hook-form zod lucide-react recharts react-helmet-async nanoid
+Configure Tailwind: npx tailwindcss init -p, add theme colors matching brand
+4.1.2 Database Configuration (PostgreSQL only)
+Configure DATABASE_URL in .env, pointing exclusively to PostgreSQL — remove any MySQL driver/config from the prior version
+Create migrations mapped 1:1 to ERD tables for: Vehicle, VehiclePrice, VehicleAvailability, VehicleRemovalLog, ProductChangeLog, PriceChangeLog
+Create migrations for: Customer, CustomerOTPVerification, CustomerDocument
+Create migrations for: Driver, DriverLocation, DriverAvailability
+Create migrations for: SaleOrder, RentalBooking, Payment
+Create migrations for: StatusEventLog, AdminUser, ActivityLog, RequestLog (with new referral_code column), DailyAdminSummary
+Create migration for the new Referral table (referral_id, referral_code, referrer_customer_id, vehicle_id, referred_customer_id, status, visited_at, converted_at, sale_order_id, commission_amount, commission_status, admin_notified_at, processed_by_admin_id, expires_at, timestamps)
+Run: npx sequelize-cli db:migrate (or npm run migrate)
+Seed an initial AdminUser record via a seed script
+4.1.3 ERD Relationship Rules (from Schema)
+VEHICLE → VEHICLE_PRICE: one vehicle has multiple pricing records (listing_mode, effective_from/to)
+CUSTOMER → CUSTOMER_OTP_VERIFICATION: one customer, many OTP attempts (purpose: login / buy / rent)
+SALE_ORDER → VEHICLE_REMOVAL_LOG: completed sale triggers vehicle removal from listing
+RENTAL_BOOKING links VEHICLE + CUSTOMER + DRIVER + VEHICLE_PRICE in one record
+ADMIN_USER is a FK (updated_by, created_by, verified_by, recorded_by, processed_by_admin_id) across 12+ tables, including REFERRAL
+STATUS_EVENT_LOG is polymorphic: entity_type + entity_id references any table, including REFERRAL
+CUSTOMER → REFERRAL (referrer_customer_id): one customer can own many referral links, one per vehicle
+CUSTOMER → REFERRAL (referred_customer_id): one customer can be the referred party on at most one active referral per vehicle
+REFERRAL → SALE_ORDER: one-to-one, set only on confirmed conversion
+STAGE 2 — Backend API Development (Express)
+Estimated Duration: 2–3 Weeks
+4.2.1 Authentication & OTP API
+POST /api/auth/send-otp — accept phone, generate 6-digit OTP, save to customer_otp_verification, send via Twilio SMS
+POST /api/auth/verify-otp — match OTP against DB (check attempt_count, expires_at), mark verified_at, issue JWT
+POST /api/auth/signup — create Customer record; accepts an optional referral_code from the captured referral link and attaches it to a pending Referral row (see 4.2.6); triggers OTP automatically
+POST /api/auth/login — check phone exists, send OTP (OTP required on every login)
+POST /api/auth/refresh — JWT refresh endpoint
+GET /api/auth/me — return current customer profile
+Twilio Integration in src/services/twilioService.js
+const twilio = require('twilio')
+const client = twilio(ACCOUNT_SID, AUTH_TOKEN)
+client.messages.create({ body, from: TWILIO_NUMBER, to: phone })
+OTP expires in 5 minutes (expires_at = sent_at + 5min)
+Max 3 attempts before locking (attempt_count >= 3 → reject)
+4.2.2 Vehicle APIs
+Endpoint
+Method
+Description
+/api/vehicles
+GET
+List all active vehicles with filters (status, fuel_type, location, price range)
+/api/vehicles/:id
+GET
+Full vehicle detail + current pricing
+/api/vehicles
+POST
+Admin: add new vehicle (triggers STATUS_EVENT_LOG)
+/api/vehicles/:id
+PATCH
+Admin: update vehicle fields (triggers PRODUCT_CHANGE_LOG)
+/api/vehicles/:id/remove
+POST
+Admin: remove from listing (writes VEHICLE_REMOVAL_LOG)
+/api/vehicles/:id/pricing
+GET/POST
+List/create pricing records for a vehicle
+/api/vehicles/:id/availability
+GET/POST
+Check/block vehicle availability window
+
+4.2.3 Driver APIs
+Endpoint
+Method
+Description
+/api/drivers
+GET
+List all drivers with city/zone filter
+/api/drivers/:id
+GET
+Full driver detail + availability
+/api/drivers
+POST
+Admin: register new driver
+/api/drivers/:id
+PATCH
+Admin: update driver details
+/api/drivers/:id/location
+POST
+Admin: assign driver to city/zone
+/api/drivers/:id/availability
+GET/POST
+Admin: block/unblock driver schedule
+
+4.2.4 Orders & Bookings APIs
+Endpoint
+Method
+Description
+/api/orders/sale
+GET/POST
+List all sale orders / Admin create sale order — on create, checks request_log.referral_code and runs referral conversion logic (4.2.6)
+/api/orders/sale/:id
+GET/PATCH
+Get/update sale order (payment status, ownership)
+/api/orders/rental
+GET/POST
+List all rentals / Admin create rental booking
+/api/orders/rental/:id
+GET/PATCH
+Get/update rental (return time, status)
+/api/orders/rental/:id/return
+POST
+Mark vehicle returned, trigger STATUS_EVENT_LOG
+/api/orders/payment
+POST
+Record payment (partial/full) for sale or rental
+/api/orders/exchange
+POST
+Create exchange order (given vehicle + taken vehicle linked to customer)
+
+4.2.5 Request & Status APIs
+Endpoint
+Method
+Description
+/api/requests
+POST
+Customer: submit buy/rent/driver request (writes REQUEST_LOG); body accepts an optional referral_code captured from the buyer's session
+/api/requests
+GET
+Admin: list all pending/resolved requests
+/api/requests/:id/accept
+POST
+Admin: accept request, move to sale/rental, write STATUS_EVENT_LOG, trigger referral conversion check
+/api/status-events
+GET
+Admin: full status event log (paginated, filterable), including referral_converted events
+/api/admin/summary
+GET
+Daily admin KPI summary (from DAILY_ADMIN_SUMMARY), including referral conversions and commissions
+/api/admin/activity-log
+GET
+Admin: full activity audit trail
+
+4.2.6 Referral & Commission APIs — NEW
+This subsystem lets any logged-in customer generate a unique referral link per vehicle, tracks visits and conversions automatically in the backend, and notifies the admin with full referrer contact details for commission payout.
+Endpoint
+Method
+Description
+/api/referrals/generate
+POST
+Auth required. Body: { vehicle_id }. Creates (or returns existing active) Referral row with a unique nanoid referral_code; responds with the shareable URL, e.g. https://domain.com/buy/vehicle/:id?ref=CODE
+/api/referrals/resolve/:code
+GET
+Public. Validates the code, returns vehicle preview data, and marks the Referral status as visited (sets visited_at on first visit only)
+/api/referrals/my
+GET
+Auth required (customer). Lists the caller's own generated referral links with status and commission for each
+/api/admin/referrals
+GET
+Admin only. Paginated list of all referrals with referrer name/phone/email, vehicle, referred customer, status, sale_order_id, commission_amount, commission_status
+/api/admin/referrals/:id
+GET
+Admin only. Full detail of one referral, including referrer contact card for commission payout
+/api/admin/referrals/:id/commission
+PATCH
+Admin only. Body: { commission_status, commission_amount }. Approves or marks a commission as paid; writes ACTIVITY_LOG and STATUS_EVENT_LOG
+
+4.2.7 Referral Conversion Logic (Backend Workflow)
+Step 1 — Link generation: a logged-in customer on a vehicle detail page taps “Refer & Earn”. Frontend calls POST /api/referrals/generate with the vehicle_id. Backend generates a unique referral_code via nanoid, inserts a Referral row (status = generated), and returns the full shareable link.
+Step 2 — Sharing: the customer shares the link via WhatsApp, SMS, or copy-link using the Web Share API / react-share.
+Step 3 — Visit tracking: when anyone opens the link, the frontend reads the ?ref= query param, stores it in referralStore (Zustand, persisted to sessionStorage), and calls GET /api/referrals/resolve/:code, which sets status = visited and visited_at = NOW() on first visit.
+Step 4 — Attribution at signup or request: if the visitor signs up, the stored referral_code is sent with POST /api/auth/signup and saved to Referral.referred_customer_id (only if not already set, and referred_customer_id ≠ referrer_customer_id). If the visitor already had an account, the referral_code instead travels with POST /api/requests when they submit a buy request for that vehicle, and is stored on REQUEST_LOG.referral_code.
+Step 5 — Conversion detection: when an admin accepts the buy request (POST /api/requests/:id/accept) or directly creates a sale order (POST /api/orders/sale), the backend looks up REQUEST_LOG.referral_code (or the Referral row by referred_customer_id + vehicle_id). If a matching Referral exists with status in (generated, visited), the service updates it to status = converted, sets converted_at, links sale_order_id, and calculates commission_amount (price will be entry manually by admin).
+Step 6 — Admin notification: the same transaction writes a STATUS_EVENT_LOG entry with event_type = referral_converted, entity_type = 'REFERRAL', entity_id = referral_id, and a payload containing the referrer's full name, phone, email, the referred customer's name, the vehicle, the sale price, and the calculated commission. admin_notified_at is stamped. This appears immediately on the Admin Status Log feed (4.3.2, Page 1) with a dedicated badge.
+Step 7 — Commission payout: an admin opens the Referral & Commission page (4.3.2, Page 5), reviews the referrer's contact details, and calls PATCH /api/admin/referrals/:id/commission to mark the commission approved, then paid — each transition is recorded in ACTIVITY_LOG.
+Expiry: a node-cron job (referralLinkExpiry.js) runs daily and marks any Referral row past its expires_at (default 90 days) as expired if it has not converted, freeing the customer to generate a fresh link for the same vehicle.
+STAGE 3 — Admin Panel Frontend
+Estimated Duration: 2 Weeks
+4.3.1 Admin Panel Design Principles
+UX-first: clear labels, large click targets, consistent iconography (Lucide Icons)
+Sidebar navigation with collapsible menu and breadcrumb trail
+Color-coded status badges (green = active, amber = pending, red = removed/overdue, purple = referral conversion)
+Inline editing: click any row field to edit directly, click Save to commit
+Confirmation modals for all destructive actions (delete, remove, close order)
+Responsive layout: admin panel optimized for desktop (1024px+)
+Toast notifications for all save/error/status events
+4.3.2 Admin Panel Pages
+Page 1: Status Event Log (Dashboard) — Route: /admin/status-log
+Real-time feed of all events from STATUS_EVENT_LOG
+Event types displayed: Vehicle Added, Vehicle Updated, Vehicle Removed, Sale Request, Rental Request, Driver Request, Vehicle Returned, Driver Returned, Payment Received (Partial), Payment Received (Full), OTP Verified, Document Submitted, Referral Converted — NEW
+Referral Converted event card shows: referrer name & phone, referred customer name, vehicle, sale price, calculated commission, and a “View Referral” link to the Commission page
+Each event card shows: event type badge, entity name/ID, previous status → new status arrow, customer or admin who triggered it, timestamp
+Filter bar: by event_type (including referral_converted), entity_type, date range, triggered_by
+Accept button on Request-type events — clicking opens pre-filled Add Sale / Add Rental / Assign Driver modal
+
+Page 2: Sold Vehicles — Route: /admin/sold-vehicles
+Full paginated table of all SALE_ORDER records
+Columns: Sale ID, Vehicle, Customer, Sale price, Payment status, Ownership transferred date, Sale date, Referred? (badge if linked to a Referral), Actions
+Add Sale button: opens modal to fill vehicle_id, customer_id, price_id, vehicle_sold_date, final_price, payment_status, transfer_date — writes to SALE_ORDER, triggers VEHICLE_REMOVAL_LOG, and runs the referral conversion check (4.2.7, Step 5) (also Sold vehicle by offline viewed customer has to be updated on site by admin)
+Add filtering option with Search bar
+
+Page 3: Lent Vehicles & Driver Assignments — Route: /admin/rentals
+Tabbed view: Vehicles tab | Drivers tab all VEHICLE_RENTAL records
+Vehicle tab paginated table of all VEHICLE_RENTAL_ORDER records
+Add lend button: opens modal to fill vehicle_id, customer_id, vehicle_rental_period, rental_price_id, final_price, payment_status, transfer_date — writes to LEND_ORDER, triggers VEHICLE_RENTAL_LOG (Lend Vehicle by Offline viewed customer has to be updated on site by admin)
+Add filtering option with Search bar
+
+Page 4: Drivers Registry — Route: /admin/drivers
+Full list of all DRIVER records all DRIVER_RENTAL records
+Add driver button: opens modal to fill vehicle_id, customer_id, driver_rental_period, driver_rental_price_id, final_price, payment_status, transfer_date — writes to DRIVER_ORDER, triggers DRIVER_RENTAL_LOG (Assign Driver by offline viewed customer has to be updated on site by admin)
+Add filtering option with Search bar
+
+Page 5: Referral & Commission Management — Route: /admin/referrals — NEW
+Paginated table of all Referral rows with columns: Referral Code, Referrer (name, phone, email), Vehicle, Referred Customer, Status (Generated / Visited / Converted / Commission Paid / Expired), Sale Price, Commission Amount, Commission Status, Date Converted, Actions
+Filter bar: by status, commission_status, date range, vehicle
+Row click expands a Referrer Contact Card: full name, phone (click-to-call), email, preferred payout note, with “Mark Approved” and “Mark Paid” buttons calling PATCH /api/admin/referrals/:id/commission
+KPI strip at top: total active referrals, conversions this month, total commission pending, total commission paid
+Export to CSV for finance/accounts processing
+
+Additional Admin Pages
+Vehicle Management (/admin/vehicles): CRUD for all VEHICLE records with image upload, pricing, availability blocking
+Vehicle Rental Management (/admin/rentals): CRUD for all VEHICLE_RENTAL records 
+Driver Rental Management (/admin/rentals): CRUD for all DRIVER_RENTAL records 
+Customer Management (/admin/customers): view all customers, verify documents, view OTP history, and view each customer's referral activity (links generated and converted)
+Payments (/admin/payments): full PAYMENT table with filter by sale/rental, date, method, status
+Daily Summary (/admin/summary): KPI cards from DAILY_ADMIN_SUMMARY, including referral conversions and commission totals
+Activity Log (/admin/activity): full ACTIVITY_LOG audit trail with old/new JSON diff viewer
+STAGE 4 — Buyer Panel Frontend
+Estimated Duration: 1 Week
+4.4.1 Buyer Panel Design Principles
+Visually rich, image-led layout — large vehicle photography, smooth hover effects
+Tailwind CSS animated cards with shadow transitions
+Sticky search/filter bar with instant results (no page reload)
+Mobile-first responsive design (360px to 1440px breakpoints)
+SEO-optimized: react-helmet-async for per-page meta, Open Graph, structured data (JSON-LD: AutoDealer schema)
+4.4.2 Buyer Panel Pages
+Page: Vehicle Listing (Home) — Route: /buy
+Hero section, filter sidebar, vehicle grid, pagination/infinite scroll — unchanged from prior specification
+
+Page: Vehicle Detail — Route: /buy/vehicle/:id/:make-:model-:year
+Full image gallery, key stats bar, detailed spec table, price display — unchanged from prior specification
+Buy Now button: checks auth state via Zustand authStore; redirects to login if needed, else POST /api/requests/ with request_type="buy" (includes referral_code from referralStore if present)
+“Refer & Earn” button — NEW: visible only to logged-in customers, positioned beside the Buy Now button. Tapping it calls POST /api/referrals/generate for the current vehicle_id and opens a share sheet (WhatsApp, copy link, native share) pre-filled with the generated link and a short message, e.g. “Check out this [Year Make Model] — [link]”
+My Referrals widget on the customer's account page lists every link they have generated for this and other vehicles, with live status and commission earned
+On arrival via a referral link, the frontend silently calls GET /api/referrals/resolve/:code in the background to register the visit, with no UI change for the visitor
+SEO: <title> = "Buy [Year] [Make] [Model] — [City] | BrandName", JSON-LD Product schema with price, availability, image
+STAGE 5 — Lending (Rental) Panel Frontend
+Estimated Duration: 1.5 Weeks
+Unchanged from the prior specification — Vehicles for Rent and Drivers for Hire sections, duration picker, and SEO requirements remain as originally defined. Added filtering option with Search bar for Vehicle and Driver Rental. The referral program in this revision applies to vehicle sale (Buyer Panel) conversions only; rental referral commissions are out of scope for this phase and may be considered in a future revision.
+STAGE 6 — Authentication: Login, OTP & Signup
+Estimated Duration: 1 Week
+4.6.1 Auth Flow
+Customer visits /login or is redirected from any protected action (including from a referral link)
+Enters mobile number → POST /api/auth/send-otp → Twilio sends OTP SMS
+OTP entry screen with 5-minute countdown timer and resend option (after 60s)
+On correct OTP → JWT (access + refresh) stored in memory (not localStorage for security)
+Auth state managed in Zustand authStore, persisted with sessionStorage as fallback
+After verification → redirect to original page (preserved in redirect query param, including any captured ?ref= code)
+4.6.2 Auth Pages
+/login — Login Page
+Two-step layout, OTP boxes, countdown timer, resend link, error handling — unchanged from prior specification
+
+/signup — Signup Page
+Fields: Full Name, Email, Phone (primary ID), City, State, Customer Type (Individual/Dealer)
+On submit: POST /api/auth/signup — creates Customer record, attaches any captured referral_code from referralStore (linking Referral.referred_customer_id), triggers OTP automatically
+After OTP verified → auto-login, redirect to home or original page
+Duplicate phone check: if phone already exists → toast “Phone registered. Please log in.”
+4.6.3 OTP Backend Logic (Node/Express)
+Rule
+Implementation
+OTP generation
+crypto.randomInt(100000, 999999) — 6-digit code
+OTP storage
+customer_otp_verification record: otp_code (bcrypt-hashed), sent_at, expires_at = now + 5min
+Attempt tracking
+attempt_count increments on each wrong try; lock after 3
+Expiry check
+verified_at must be before expires_at; reject if expired
+Purpose field
+Values: "login", "signup" — stored for audit trail
+Twilio send
+client.messages.create({ body, from, to: phone })
+JWT issue
+On success: issue access (15min) + refresh (7 days) tokens
+STAGE 7 — SEO Implementation
+Estimated Duration: 3–4 Days
+4.7.1 SEO Tags Per Page
+Page
+Title Pattern
+Meta Description Pattern
+/buy
+Buy Used Cars in [City] | BrandName
+Browse quality secondhand vehicles at best prices. Verified listings in [City].
+/buy/vehicle/:id
+Buy [Year] [Make] [Model] — [City]
+Used [Year] [Make] [Model], [Mileage]km, [Fuel]. Priced at ₹[Price]. Verified listing.
+/rent
+Rent a Car Hourly/Daily in [City]
+Self-drive car rentals starting from ₹[Rate]/hr. Wide range available in [City].
+/drivers
+Hire a Driver in [City] | BrandName
+Professional drivers for hire per hour/day in [City]. Safe and verified.
+
+4.7.2 Structured Data (JSON-LD)
+Vehicle listing: schema.org/Product with name, price, image, offers, seller (AutoDealer)
+Rental: schema.org/Service with areaServed, hoursAvailable, offers
+Driver: schema.org/LocalBusiness type Person with geo, priceRange
+Organization schema in index.html with logo, contactPoint, sameAs social links
+4.7.3 Additional SEO Elements
+Canonical URLs on all pages to prevent duplicate content (referral ?ref= query params are excluded from canonical URLs to avoid duplicate-content issues)
+Open Graph tags (og:title, og:description, og:image) for WhatsApp/Facebook sharing — also used when a referral link is shared
+Twitter Card tags for social previews
+robots.txt allowing all buyer/lending routes, disallowing /admin/*
+sitemap.xml generated dynamically listing all vehicle detail pages
+Image alt text: "[Year] [Make] [Model] in [City] for sale/rent"
+STAGE 8 — Testing & QA
+Estimated Duration: 1 Week
+4.8.1 Backend Testing
+Unit tests for all Express routes using Jest + Supertest
+OTP flow tests: generate, verify, expire, max-attempt lock
+Permission tests: unauthenticated, customer, admin roles (JWT middleware)
+PAYMENT tests: partial payment balance, full payment close
+VEHICLE_REMOVAL_LOG trigger test: completing a sale auto-removes vehicle from listing
+Exchange transaction integrity test
+Referral generation test: unique code creation, duplicate-link prevention for the same customer + vehicle pair — NEW
+Referral conversion test: end-to-end — generate link, simulate visit, signup with referral_code, admin accepts buy request, assert Referral.status = converted, commission_amount calculated correctly, STATUS_EVENT_LOG entry written — NEW
+Referral edge-case tests: self-referral rejection, expired link rejection, link reused after expiry — NEW
+4.8.2 Frontend Testing
+React Testing Library for component unit tests
+Auth flow E2E: phone → OTP → JWT → protected route access
+Buy flow E2E: list → detail → buy button → request submitted → admin status log updated
+Rental flow E2E: list → duration picker → submit → confirmation
+Admin flow: add sale from status log → vehicle removed from buyer listing
+Referral flow E2E — NEW: customer generates link → share sheet opens → link opened in new session → visit registered → signup captures referral_code → buy request submitted → admin accepts → referrer sees commission status update in My Referrals
+OTP countdown timer and resend behavior
+4.8.3 Cross-browser & Responsive Testing
+Chrome, Firefox, Safari, Edge (latest versions)
+Mobile: 375px (iPhone SE), 390px (iPhone 14), 412px (Android), 768px (tablet)
+Admin panel: 1280px, 1440px, 1920px desktop sizes
+STAGE 9 — Deployment
+Estimated Duration: 3–4 Days
+4.9.1 Server Configuration
+Node.js: PM2 process manager running the Express app behind an Nginx reverse proxy
+React: build with npm run build, serve static files via Nginx
+PostgreSQL: managed DB instance (AWS RDS / DigitalOcean Managed PostgreSQL) or self-hosted — sole database engine
+node-cron: runs in-process within the Express app for OTP expiry, overdue rental alerts, daily summary, and referral link expiry jobs; for multi-instance deployments, move these to a dedicated worker process with a job lock to avoid duplicate runs
+Environment variables: .env file with DATABASE_URL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE, JWT_SECRET, JWT_REFRESH_SECRET, PORT, REFERRAL_COMMISSION_PERCENT, REFERRAL_LINK_EXPIRY_DAYS
+4.9.2 Security Checklist
+NODE_ENV=production with debug logging disabled
+HTTPS enforced via Nginx SSL (Let's Encrypt / Certbot)
+CORS_ALLOWED_ORIGINS restricted to actual frontend domain (cors middleware)
+JWT access tokens in memory only (not localStorage)
+Rate limit on /api/auth/send-otp (max 5 requests per phone per hour) and on /api/referrals/generate (max 20 links per customer per day to prevent abuse)
+helmet middleware for secure HTTP headers; CSRF protection for any session-based views
+Media files served from separate S3 bucket or media server
+Admin panel routes protected by AdminUser JWT (separate secret/issuer from Customer JWT)
+Referral codes generated with nanoid using a URL-safe alphabet and sufficient entropy to resist guessing/enumeration
+
+5. Complete User Flow Diagrams
+5.1 Customer Buy Flow
+Step
+Customer Action
+System Action
+1
+Opens /buy — views vehicle listing (possibly via a referral link)
+GET /api/vehicles?status=available&listing_mode=sale; if ?ref= present, GET /api/referrals/resolve/:code marks visit
+2
+Clicks vehicle card
+Navigate to /buy/vehicle/:id, GET /api/vehicles/:id
+3
+Clicks "Buy Now"
+Check authStore: is JWT valid?
+4a
+NOT logged in
+Redirect to /login?redirect=/buy/vehicle/:id (referral code preserved)
+4b
+Logged in
+POST /api/requests {type:buy, vehicle_id, customer_id, referral_code?}
+5
+Sees confirmation toast
+REQUEST_LOG created, STATUS_EVENT_LOG entry written
+6
+Admin sees in Status Log
+Admin clicks Accept → SALE_ORDER created, vehicle status updated, referral conversion check runs
+
+5.2 Customer Rental Flow
+Step
+Customer Action
+System Action
+1
+Opens /rent — views rental vehicles
+GET /api/vehicles?listing_mode=rental
+2
+Clicks vehicle, opens detail
+GET /api/vehicles/:id with pricing
+3
+Selects hours/days, sees total price
+Client-side: duration × rate = estimate
+4
+Clicks "Lend Now"
+Auth check → login redirect if not authenticated
+5
+Authenticated → request submitted
+POST /api/requests {type:rent, vehicle_id, hours/days}
+6
+Confirmation message shown
+REQUEST_LOG + STATUS_EVENT_LOG written
+7
+Admin accepts, assigns driver
+RENTAL_BOOKING created, DRIVER_AVAILABILITY blocked
+8
+At return time
+node-cron task checks expected_return; if overdue → STATUS_EVENT_LOG alert
+
+5.3 Admin Accept & Close Flow
+Step
+Admin Action
+DB Result
+1
+Views Status Log — sees new Request event
+Reads STATUS_EVENT_LOG
+2
+Clicks Accept on buy request
+Opens Add Sale modal pre-filled from REQUEST_LOG
+3
+Fills price, payment, transfer date, saves
+SALE_ORDER INSERT, PAYMENT INSERT
+4
+System auto-removes vehicle
+VEHICLE_REMOVAL_LOG INSERT, VEHICLE.status = sold
+5
+System checks referral attribution
+If REQUEST_LOG.referral_code matches an active Referral → REFERRAL.status = converted, sale_order_id linked, commission_amount calculated
+6
+New STATUS_EVENT_LOG entries visible
+event_type=sale_completed, entity_id=sale_id; event_type=referral_converted, entity_id=referral_id (if applicable)
+
+5.4 Referral & Commission Flow — NEW
+Step
+Actor & Action
+System Action
+1
+Referrer (logged-in customer) taps "Refer & Earn" on a vehicle detail page
+POST /api/referrals/generate {vehicle_id} → REFERRAL INSERT (status=generated) with unique referral_code
+2
+Referrer shares the link via WhatsApp / copy link / native share
+No backend call — client-side share sheet only
+3
+Referred person opens the shared link
+GET /api/referrals/resolve/:code → REFERRAL.status = visited, visited_at set; referral_code cached client-side
+4
+Referred person signs up (or logs in) and submits a Buy request for that vehicle
+POST /api/auth/signup attaches referred_customer_id; POST /api/requests stores referral_code on REQUEST_LOG
+5
+Admin reviews the buy request and clicks Accept, completing the sale
+SALE_ORDER created; backend matches REQUEST_LOG.referral_code to the Referral row
+6
+System fetches the referrer's contact details and finalizes the conversion
+REFERRAL.status = converted, sale_order_id linked, commission_amount calculated, STATUS_EVENT_LOG (referral_converted) written with referrer name/phone/email
+7
+Admin opens Referral & Commission page, contacts the referrer
+GET /api/admin/referrals/:id shows referrer contact card
+8
+Admin approves and pays the commission
+PATCH /api/admin/referrals/:id/commission → commission_status: pending → approved → paid; ACTIVITY_LOG entry recorded
+
+6. Sprint & Timeline Summary
+Sprint
+Deliverable
+Duration
+Status
+Sprint 1
+Project setup, PostgreSQL DB models/migrations (incl. Referral table)
+1 week
+Stage 1
+Sprint 2
+Auth APIs: OTP, JWT, Twilio integration (Express)
+1 week
+Stage 2a
+Sprint 3
+Vehicle, Driver, Order APIs (Express)
+1.5 weeks
+Stage 2b
+Sprint 4
+Request, Status Event, Admin Summary, Referral & Commission APIs
+1.5 weeks
+Stage 2c
+Sprint 5
+Admin Panel — Status Log + Sold Vehicles pages
+1 week
+Stage 3a
+Sprint 6
+Admin Panel — Rentals + Drivers + Referral & Commission pages
+1.5 weeks
+Stage 3b
+Sprint 7
+Buyer Panel — Listing + Detail + Request flow + Refer & Earn UI
+1.5 weeks
+Stage 4
+Sprint 8
+Lending Panel — Vehicles + Drivers pages
+1 week
+Stage 5
+Sprint 9
+Auth pages — Login, OTP, Signup (with referral capture)
+1 week
+Stage 6
+Sprint 10
+SEO, structured data, robots.txt, sitemap
+3–4 days
+Stage 7
+Sprint 11
+Testing — backend, frontend, E2E, referral conversion tests
+1.5 weeks
+Stage 8
+Sprint 12
+Deployment, SSL, env config, go-live (Node/PM2/Nginx/PostgreSQL)
+3–4 days
+Stage 9
+TOTAL
+Full project delivery
+≈ 13–14 Weeks
+
+
+7. Key Notes & Conventions
+All timestamps stored in UTC in the database; converted to local time in the frontend
+All prices stored as DECIMAL(10,2) in PostgreSQL; displayed in frontend with INR (₹) formatting
+PostgreSQL is the only supported database in this revision — all MySQL-specific configuration, drivers, and fallback code paths have been removed
+Admin JWTs are separate from Customer JWTs — different issuer claim in payload
+Every admin write action (POST/PATCH/DELETE) must write to ACTIVITY_LOG with old_data/new_data JSON
+Vehicle listing_mode field must be: "sale", "rental", or "both" — drives which panel shows it
+Exchange orders are recorded as two SALE_ORDERs linked by a nullable exchange_ref_id field
+OTP is hashed before storage (use bcrypt.hash / bcrypt.compare)
+A node-cron task runs every 15 minutes to check overdue rentals and write STATUS_EVENT_LOG
+DAILY_ADMIN_SUMMARY is generated by a node-cron task at midnight using DB aggregation
+Referral codes are unique, URL-safe, and generated server-side with nanoid — never client-generated
+A customer cannot refer themselves: referrer_customer_id and referred_customer_id are validated to differ before a conversion is accepted
+One vehicle can have only one active (non-expired, non-converted) referral link per referrer; requesting a new link for the same pair returns the existing active link instead of creating a duplicate
+Referral conversion is decided strictly in the backend at the moment an admin confirms a sale — never on the frontend — to prevent spoofed conversion claims
+Commission percentage is configurable via the REFERRAL_COMMISSION_PERCENT environment variable so business rules can change without a code deploy
+All referral-to-sale linkage is auditable: REQUEST_LOG.referral_code, REFERRAL.sale_order_id, and STATUS_EVENT_LOG together provide a full trail from link share to commission payout
+
+— End of Document —
