@@ -1,6 +1,13 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dns from 'dns';
+
+// Force DNS resolution to prefer IPv4 first. This prevents IPv6 connection errors
+// like ENETUNREACH when connecting to external APIs (e.g. Gmail SMTP) on IPv4-only cloud hosts.
+if (dns && dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
