@@ -4,23 +4,36 @@ import logger from '../config/logger.js';
 
 let transporter = null;
 
+const cleanVal = (val) => {
+  if (!val) return '';
+  const trimmed = val.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
 const initTransporter = () => {
   if (env.MOCK_EMAIL) {
     logger.info('[EmailService] Running in MOCK_EMAIL mode — no real emails will be sent.');
     return null;
   }
 
+  const host = cleanVal(env.SMTP_HOST);
+  const user = cleanVal(env.SMTP_USER);
+  const pass = cleanVal(env.SMTP_PASS).replace(/\s+/g, '');
+
   const t = nodemailer.createTransport({
-    host: env.SMTP_HOST,
+    host,
     port: env.SMTP_PORT,
     secure: env.SMTP_PORT === 465, // true for 465, false for 587
     auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS ? env.SMTP_PASS.replace(/\s+/g, '') : '',
+      user,
+      pass,
     },
   });
 
-  logger.info(`[EmailService] SMTP transporter initialized (${env.SMTP_HOST}:${env.SMTP_PORT})`);
+  logger.info(`[EmailService] SMTP transporter initialized (${host}:${env.SMTP_PORT})`);
   return t;
 };
 
@@ -36,8 +49,10 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   try {
+    const fromName = cleanVal(env.SMTP_FROM_NAME);
+    const fromEmail = cleanVal(env.SMTP_FROM_EMAIL);
     const info = await transporter.sendMail({
-      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to,
       subject,
       html,
