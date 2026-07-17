@@ -171,13 +171,13 @@ export const Login = () => {
               >
                 Create an account
               </button>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => navigate('/admin/login')}
                 className="text-slate-400 hover:text-brand-600 hover:underline font-semibold"
               >
                 Admin Portal
-              </button>
+              </button> */}
             </>
           )}
         </div>

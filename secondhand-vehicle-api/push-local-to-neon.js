@@ -127,7 +127,7 @@ const run = async () => {
     customer_otp_verifications: 'otp_id',
     vehicle_prices: 'price_id',
     vehicle_availabilities: 'availability_id',
-    vehicle_removal_logs: 'log_id',
+    vehicle_removal_logs: 'removal_id',
     product_change_logs: 'log_id',
     price_change_logs: 'log_id',
     driver_locations: 'location_id',
@@ -136,9 +136,9 @@ const run = async () => {
     rental_bookings: 'rental_id',
     referrals: 'referral_id',
     payments: 'payment_id',
-    request_logs: 'log_id',
-    status_event_logs: 'log_id',
-    activity_logs: 'log_id',
+    request_logs: 'request_id',
+    status_event_logs: 'event_id',
+    activity_logs: 'activity_id',
     daily_admin_summaries: 'summary_id'
   };
 
