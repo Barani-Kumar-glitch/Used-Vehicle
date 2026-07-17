@@ -1,8 +1,10 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { env } from '../config/env.js';
 import logger from '../config/logger.js';
 
 let transporter = null;
+let transporterPromise = null;
 
 const cleanVal = (val) => {
   if (!val) return '';
@@ -13,13 +15,32 @@ const cleanVal = (val) => {
   return trimmed;
 };
 
-const initTransporter = () => {
+const initTransporter = async () => {
   if (env.MOCK_EMAIL) {
     logger.info('[EmailService] Running in MOCK_EMAIL mode — no real emails will be sent.');
     return null;
   }
 
-  const host = cleanVal(env.SMTP_HOST);
+  const originalHost = cleanVal(env.SMTP_HOST);
+  let host = originalHost;
+  let tlsOptions = {};
+
+  try {
+    const address = await new Promise((resolve, reject) => {
+      dns.lookup(originalHost, { family: 4 }, (err, addr) => {
+        if (err) reject(err);
+        else resolve(addr);
+      });
+    });
+    host = address;
+    tlsOptions = {
+      servername: originalHost,
+    };
+    logger.info(`[EmailService] DNS lookup resolved ${originalHost} to IPv4: ${host}`);
+  } catch (dnsErr) {
+    logger.warn(`[EmailService] DNS lookup failed for ${originalHost}, using fallback: ${dnsErr.message}`);
+  }
+
   const user = cleanVal(env.SMTP_USER);
   const pass = cleanVal(env.SMTP_PASS).replace(/\s+/g, '');
 
@@ -31,21 +52,38 @@ const initTransporter = () => {
       user,
       pass,
     },
+    tls: tlsOptions,
   });
 
-  logger.info(`[EmailService] SMTP transporter initialized (${host}:${env.SMTP_PORT})`);
+  logger.info(`[EmailService] SMTP transporter initialized (${originalHost} via ${host}:${env.SMTP_PORT})`);
   return t;
 };
 
-transporter = initTransporter();
+// Start transporter initialization asynchronously
+transporterPromise = initTransporter().then((t) => {
+  transporter = t;
+  return t;
+}).catch((err) => {
+  logger.error(`[EmailService] Transporter initialization failed: ${err.message}`);
+  return null;
+});
 
 /**
  * Send a raw email.
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
-  if (env.MOCK_EMAIL || !transporter) {
+  if (env.MOCK_EMAIL) {
     logger.debug(`[MOCK EMAIL] TO: ${to} | SUBJECT: ${subject} | BODY: ${text || html}`);
     return { success: true, mock: true };
+  }
+
+  // Ensure transporter is fully initialized before sending
+  if (!transporter) {
+    transporter = await transporterPromise;
+  }
+
+  if (!transporter) {
+    throw new Error('Email service SMTP transporter is not initialized.');
   }
 
   try {
