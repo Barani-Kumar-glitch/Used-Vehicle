@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../../api/index.js';
+import API, { API_URL } from '../../api/index.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Spinner, Card, Badge, Button, Modal } from '../../components/common/UI.jsx';
 import { 
@@ -53,7 +53,7 @@ const VehicleImageSlider = ({ photoUrl, altText }) => {
         {photos.map((url, index) => (
           <img
             key={index}
-            src={url.startsWith('http') ? url : `http://localhost:5000${url}`}
+            src={url.startsWith('http') ? url : `${API_URL}${url}`}
             alt={`${altText} - ${index + 1}`}
             className="w-full h-full object-cover flex-shrink-0"
           />

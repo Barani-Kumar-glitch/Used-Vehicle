@@ -33,13 +33,13 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173',  // Vite dev server
   'http://localhost:3000',  // Alternative dev port
-  ...(env.CLIENT_ORIGIN ? [env.CLIENT_ORIGIN] : []),
+  ...(env.CLIENT_ORIGIN ? env.CLIENT_ORIGIN.split(',').map(o => o.trim()) : []),
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || env.CLIENT_ORIGIN === '*') {
       callback(null, true);
     } else {
       logger.warn(`CORS blocked request from: ${origin}`);

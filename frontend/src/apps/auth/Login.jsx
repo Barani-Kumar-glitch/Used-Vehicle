@@ -9,7 +9,7 @@ import { Mail, Lock, User, ShieldAlert } from 'lucide-react';
 export const Login = () => {
   const { showToast } = useNotificationStore();
   const location = useLocation();
-  const [isAdminMode, setIsAdminMode] = useState(location.pathname === '/admin/login');
+  const isAdminMode = location.pathname === '/admin/login';
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -154,10 +154,31 @@ export const Login = () => {
         </form>
 
         <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          {!isAdminMode && (
-            <button onClick={() => navigate('/signup')} className="text-brand-600 font-semibold hover:underline">
-              Create an account
+          {isAdminMode ? (
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="text-brand-600 font-semibold hover:underline"
+            >
+              Switch to Customer Login
             </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('/signup')}
+                className="text-brand-600 font-semibold hover:underline"
+              >
+                Create an account
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/login')}
+                className="text-slate-400 hover:text-brand-600 hover:underline font-semibold"
+              >
+                Admin Portal
+              </button>
+            </>
           )}
         </div>
       </Card>

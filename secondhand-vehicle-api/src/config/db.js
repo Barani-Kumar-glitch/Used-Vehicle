@@ -4,6 +4,12 @@ import logger from './logger.js';
 
 export const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: 'postgres',
+  dialectOptions: env.NODE_ENV === 'production' ? {
+    ssl: {
+      require: true,
+      rejectUnauthorized: true, // Neon requires SSL
+    }
+  } : {},
   // Route Sequelize SQL logs through Winston at debug level (dev only)
   logging: env.NODE_ENV === 'development'
     ? (msg) => logger.debug(`[Sequelize] ${msg}`)

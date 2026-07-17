@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../api/index.js';
+import API, { API_URL } from '../../api/index.js';
 import { useNotificationStore } from '../../stores/notificationStore.js';
 import { Spinner, Table, Badge, Button, Modal, Card } from '../../components/common/UI.jsx';
 import { Plus, Search, Car, HelpCircle, ShieldAlert, Tag, Calendar, Clock } from 'lucide-react';
@@ -380,7 +380,7 @@ export const VehicleRegistry = () => {
                       const photos = getPhotoArray(car.photo_url);
                       return photos.length > 0 ? (
                         <img
-                          src={photos[0].startsWith('http') ? photos[0] : `http://localhost:5000${photos[0]}`}
+                          src={photos[0].startsWith('http') ? photos[0] : `${API_URL}${photos[0]}`}
                           alt={`${car.make} ${car.model}`}
                           className="w-12 h-10 object-cover rounded-lg border border-slate-800 bg-slate-900"
                         />
@@ -629,7 +629,7 @@ export const VehicleRegistry = () => {
                   {photoUrls.map((url, idx) => (
                     <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center group shadow-sm">
                       <img
-                        src={url.startsWith('http') ? url : `http://localhost:5000${url}`}
+                        src={url.startsWith('http') ? url : `${API_URL}${url}`}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
