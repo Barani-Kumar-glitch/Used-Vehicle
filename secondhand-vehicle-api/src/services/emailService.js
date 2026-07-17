@@ -21,6 +21,11 @@ const initTransporter = async () => {
     return null;
   }
 
+  if (env.BREVO_API_KEY) {
+    logger.info('[EmailService] Brevo API Key configured — using Brevo HTTP API.');
+    return null;
+  }
+
   const originalHost = cleanVal(env.SMTP_HOST);
   let host = originalHost;
   let tlsOptions = {};
@@ -77,7 +82,44 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     return { success: true, mock: true };
   }
 
-  // Ensure transporter is fully initialized before sending
+  // 1. If BREVO_API_KEY is configured, send via Brevo HTTP API (ideal for Render Free tier)
+  if (env.BREVO_API_KEY) {
+    try {
+      const apiKey = cleanVal(env.BREVO_API_KEY);
+      const fromName = cleanVal(env.SMTP_FROM_NAME) || 'SecondHand Vehicles';
+      const fromEmail = cleanVal(env.SMTP_FROM_EMAIL) || 'noreply@secondhandvehicles.com';
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': apiKey,
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: fromName, email: fromEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: text,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Brevo HTTP API ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      logger.info(`[EmailService] Email sent via Brevo HTTP to ${to} | MessageId: ${result.messageId}`);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      logger.error(`[EmailService] Failed to send email via Brevo HTTP to ${to}: ${error.message}`);
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
+  }
+
+  // 2. Otherwise, fall back to Nodemailer SMTP (ideal for local testing)
   if (!transporter) {
     transporter = await transporterPromise;
   }

@@ -36,6 +36,6 @@ export const env = {
   SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL || 'noreply@secondhandvehicles.com',
   MOCK_EMAIL: process.env.MOCK_EMAIL ? process.env.MOCK_EMAIL === 'true' : process.env.NODE_ENV !== 'production',
   REFERRAL_COMMISSION_PERCENT: parseFloat(process.env.REFERRAL_COMMISSION_PERCENT || '5.0'), // Default 5%
-  REFERRAL_LINK_EXPIRY_DAYS: parseInt(process.env.REFERRAL_LINK_EXPIRY_DAYS || '90', 10), // Default 90 days
   LOG_LEVEL: process.env.LOG_LEVEL || 'debug',
+  BREVO_API_KEY: process.env.BREVO_API_KEY || '',
 };
