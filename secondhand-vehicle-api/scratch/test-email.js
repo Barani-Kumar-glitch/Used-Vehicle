@@ -23,8 +23,6 @@ const testMail = async () => {
     auth: { user, pass: pass ? pass.replace(/\s+/g, '') : '' },
 
     // Add these two options here to fix the Render IPv6 network error:
-    connectionTimeout: 15000, // 15 seconds
-    greetingTimeout: 15000,   // 15 seconds
     family: 4,
 
     tls: {

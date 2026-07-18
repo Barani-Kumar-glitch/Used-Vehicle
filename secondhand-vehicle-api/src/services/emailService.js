@@ -58,8 +58,6 @@ const initTransporter = async () => {
       pass,
     },
     tls: tlsOptions,
-    connectionTimeout: 15000, // 15 seconds timeout
-    greetingTimeout: 15000,   // 15 seconds
     family: 4, // Forces Nodemailer to connect using IPv4 instead of IPv6
 
     tls: {
