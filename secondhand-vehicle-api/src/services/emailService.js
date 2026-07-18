@@ -58,6 +58,8 @@ const initTransporter = async () => {
       pass,
     },
     tls: tlsOptions,
+    connectionTimeout: 10000, // 10 seconds timeout
+    family: 4 // Forces Nodemailer to connect using IPv4 instead of IPv6
   });
 
   logger.info(`[EmailService] SMTP transporter initialized (${originalHost} via ${host}:${env.SMTP_PORT})`);
